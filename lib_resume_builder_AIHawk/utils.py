@@ -78,6 +78,8 @@ def get_chrome_browser_options():
     options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])  # Esclude switch della modalità automatica e logging
 
     options.add_argument("--single-process")  # Esegui Chrome in un solo processo
+    
+    options.binary_location = "/opt/chrome/chrome-linux64/chrome"
     return options
 
 def printred(text):
