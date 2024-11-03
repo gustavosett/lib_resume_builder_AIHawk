@@ -1,8 +1,6 @@
-import base64
 import os
 from pathlib import Path
 import tempfile
-import inquirer
 from lib_resume_builder_AIHawk.config import global_config
 from lib_resume_builder_AIHawk.utils import HTML_to_PDF
 import webbrowser
@@ -23,24 +21,6 @@ class FacadeManager:
         self.resume_generator.set_resume_object(resume_object)
         self.selected_style = None  # Proprietà per memorizzare lo stile selezionato
 
-    def prompt_user(self, choices: list[str], message: str) -> str:
-        questions = [
-            inquirer.List('selection', message=message, choices=choices),
-        ]
-        return inquirer.prompt(questions)['selection']
-
-    def prompt_for_url(self, message: str) -> str:
-        questions = [
-            inquirer.Text('url', message=message),
-        ]
-        return inquirer.prompt(questions)['url']
-
-    def prompt_for_text(self, message: str) -> str:
-        questions = [
-            inquirer.Text('text', message=message),
-        ]
-        return inquirer.prompt(questions)['text']
-
     def choose_style(self):
         styles = self.style_manager.get_styles()
         if not styles:
@@ -49,7 +29,7 @@ class FacadeManager:
         final_style_choice = "Create your resume style in CSS"
         formatted_choices = self.style_manager.format_choices(styles)
         formatted_choices.append(final_style_choice)
-        selected_choice = self.prompt_user(formatted_choices, "Which style would you like to adopt?")
+        selected_choice = os.getenv("STYLE_CHOICE")
         if selected_choice == final_style_choice:
             tutorial_url = "https://github.com/feder-cr/lib_resume_builder_AIHawk/blob/main/how_to_contribute/web_designer.md"
             print("\nOpening tutorial in your browser...")
