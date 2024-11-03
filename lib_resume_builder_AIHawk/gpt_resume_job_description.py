@@ -209,12 +209,13 @@ class LLMResumeJobDescription:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as temp_file:
             temp_file.write(html_content)
             temp_file_path = temp_file.name
-
+        print(f"set_job_description_from_url: Temp file path: {temp_file_path}")
         try:
             loader = TextLoader(temp_file_path, encoding="utf-8", autodetect_encoding=True)
             document = loader.load()
         finally:
             os.remove(temp_file_path)
+        print(f"set_job_description_from_url: Document: {document}")
         text_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
         all_splits = text_splitter.split_documents(document)
         vectorstore = FAISS.from_documents(documents=all_splits, embedding=self.llm_embeddings)
@@ -229,6 +230,7 @@ class LLMResumeJobDescription:
             """,
             input_variables=["question", "context"]
         )
+        print(f"set_job_description_from_url: Prompt: {prompt}")
         def format_docs(docs):
             return "\n\n".join(doc.page_content for doc in docs)
         context_formatter = vectorstore.as_retriever() | format_docs
@@ -247,6 +249,7 @@ class LLMResumeJobDescription:
             | chain_summarize
         )
         result = qa_chain.invoke("Provide, full job description")
+        print(f"set_job_description_from_url: Result: {result}")
         self.job_description = result
 
     def set_job_description_from_text(self, job_description_text):
