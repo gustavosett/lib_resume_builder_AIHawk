@@ -24,6 +24,7 @@ setup(
         'faiss-cpu',
         'pydantic',
         'pydantic[email]',
+        'beautifulsoup4==4.12.3',
     ],
     classifiers=[
         'Programming Language :: Python :: 3',

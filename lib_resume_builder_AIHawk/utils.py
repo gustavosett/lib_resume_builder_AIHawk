@@ -1,6 +1,8 @@
+import base64
 import platform
 import os
 import time
+import requests
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium import webdriver
@@ -20,35 +22,45 @@ def create_driver_selenium():
     return webdriver.Chrome(service=service, options=options)
 
 def HTML_to_PDF(FilePath):
-    # Validazione e preparazione del percorso del file
+    gotenberg_url = os.getenv("GOTENBERG_URL")
+    if not gotenberg_url:
+        raise ValueError("A variável de ambiente 'GOTENBERG_URL' não está definida.")
+    gotenberg_uri = f"{gotenberg_url}/forms/chromium/convert/html"
+
     if not os.path.isfile(FilePath):
-        raise FileNotFoundError(f"The specified file does not exist: {FilePath}")
-    FilePath = f"file:///{os.path.abspath(FilePath).replace(os.sep, '/')}"
-    driver = create_driver_selenium()
+        raise FileNotFoundError(f"O arquivo especificado não existe: {FilePath}")
+
+    # Prepara os arquivos para envio
+    files = [
+        ('files', ('index.html', open(FilePath, 'rb'), 'text/html'))
+    ]
+
+    # Opções para personalizar a geração do PDF
+    data = {
+        'paperWidth': '8.27',      # Largura A4 em polegadas
+        'paperHeight': '11.69',    # Altura A4 em polegadas
+        'marginTop': '0.8',
+        'marginBottom': '0.8',
+        'marginLeft': '0.5',
+        'marginRight': '0.5',
+        'printBackground': 'true',
+        'preferCssPageSize': 'true',
+    }
 
     try:
-        driver.get(FilePath)
-        time.sleep(2)
-        pdf_base64 = driver.execute_cdp_cmd("Page.printToPDF", {
-            "printBackground": True,         # Include lo sfondo nella stampa
-            "landscape": False,              # Stampa in verticale (False per ritratto)
-            "paperWidth": 8.27,              # Larghezza del foglio in pollici (A4)
-            "paperHeight": 11.69,            # Altezza del foglio in pollici (A4)
-            "marginTop": 0.8,                # Margine superiore in pollici (circa 2 cm)
-            "marginBottom": 0.8,             # Margine inferiore in pollici (circa 2 cm)
-            "marginLeft": 0.5,               # Margine sinistro in pollici (circa 2 cm)
-            "marginRight": 0.5,              # Margine destro in pollici (circa 2 cm)
-            "displayHeaderFooter": False,   # Non visualizzare intestazioni e piè di pagina
-            "preferCSSPageSize": True,       # Preferire le dimensioni della pagina CSS
-            "generateDocumentOutline": False, # Non generare un sommario del documento
-            "generateTaggedPDF": False,      # Non generare PDF taggato
-            "transferMode": "ReturnAsBase64" # Restituire il PDF come stringa base64
-        })
-        return pdf_base64['data']
-    except WebDriverException as e:
-        raise RuntimeError(f"WebDriver exception occurred: {e}")
+        response = requests.post(gotenberg_uri, files=files, data=data)
+        response.raise_for_status()
+        pdf_base64 = base64.b64encode(response.content).decode('utf-8')
+        return pdf_base64
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Falha ao converter HTML para PDF: {e}")
     finally:
-        driver.quit()
+        try:
+            for file_tuple in files:
+                if hasattr(file_tuple[1][1], 'close'):
+                    file_tuple[1][1].close()
+        except Exception as e:
+            print(f"Erro ao fechar o arquivo: {e}")
 
 def get_chrome_browser_options():
     options = webdriver.ChromeOptions()
@@ -78,8 +90,6 @@ def get_chrome_browser_options():
     options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])  # Esclude switch della modalità automatica e logging
 
     options.add_argument("--single-process")  # Esegui Chrome in un solo processo
-    
-    options.binary_location = os.getenv("CHROME_PATH", "/opt/chrome/chrome-linux64/chrome")
     return options
 
 def printred(text):

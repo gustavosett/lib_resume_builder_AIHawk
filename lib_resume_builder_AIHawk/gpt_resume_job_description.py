@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 import json
 import os
 import tempfile
@@ -5,6 +6,8 @@ import textwrap
 import time
 from datetime import datetime
 from typing import Dict, List
+
+import requests
 from langchain_community.document_loaders import TextLoader
 from langchain_core.messages.ai import AIMessage
 from langchain_core.output_parsers import StrOutputParser
@@ -192,16 +195,21 @@ class LLMResumeJobDescription:
         self.resume = resume
 
     def set_job_description_from_url(self, url_job_description):
-        from lib_resume_builder_AIHawk.utils import create_driver_selenium
-        driver = create_driver_selenium()
-        driver.get(url_job_description)
-        time.sleep(3)
-        body_element = driver.find_element("tag name", "body")
-        response = body_element.get_attribute("outerHTML")
-        driver.quit()
+        response = requests.get(url_job_description)
+        response.raise_for_status()
+        html_content = response.text
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        body_element = soup.find('body')
+        if body_element is not None:
+            # Get the outer HTML of the <body> element
+            html_content = str(body_element)
+
+        # Write the HTML content to a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as temp_file:
-            temp_file.write(response)
+            temp_file.write(html_content)
             temp_file_path = temp_file.name
+
         try:
             loader = TextLoader(temp_file_path, encoding="utf-8", autodetect_encoding=True)
             document = loader.load()

@@ -52,12 +52,15 @@ class FacadeManager:
             temp_html_path = temp_html_file.name
             if job_description_url is None and job_description_text is None:
                 self.resume_generator.create_resume(style_path, temp_html_path)
-            elif job_description_url is not None and job_description_text is None:
+            elif job_description_url is not None:
                 self.resume_generator.create_resume_job_description_url(style_path, job_description_url, temp_html_path)
-            elif job_description_url is None and job_description_text is not None:
+            elif job_description_text is not None:
                 self.resume_generator.create_resume_job_description_text(style_path, job_description_text, temp_html_path)
             else:
                 return None
-        pdf_base64 = HTML_to_PDF(temp_html_path)
-        os.remove(temp_html_path)
+
+        try:
+            pdf_base64 = HTML_to_PDF(temp_html_path)
+        finally:
+            os.remove(temp_html_path)
         return pdf_base64
