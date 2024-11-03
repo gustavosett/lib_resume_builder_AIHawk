@@ -79,7 +79,7 @@ def get_chrome_browser_options():
 
     options.add_argument("--single-process")  # Esegui Chrome in un solo processo
     
-    options.binary_location = "/opt/chrome/chrome-linux64/chrome"
+    options.binary_location = os.getenv("CHROME_PATH", "/opt/chrome/chrome-linux64/chrome")
     return options
 
 def printred(text):
